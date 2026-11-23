@@ -1,22 +1,21 @@
 from helper.database import codeflixbots as db
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from helper.scope import get_scope_id
 from config import Txt
 
-@Client.on_message(filters.command("metadata"))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command("metadata"))
 async def metadata(client, message):
-    user_id = message.from_user.id
+    scope_id = get_scope_id(message)
 
-    # Fetch user metadata from the database
-    current = await db.get_metadata(user_id)
-    title = await db.get_title(user_id)
-    author = await db.get_author(user_id)
-    artist = await db.get_artist(user_id)
-    video = await db.get_video(user_id)
-    audio = await db.get_audio(user_id)
-    subtitle = await db.get_subtitle(user_id)
+    current = await db.get_metadata(scope_id)
+    title = await db.get_title(scope_id)
+    author = await db.get_author(scope_id)
+    artist = await db.get_artist(scope_id)
+    video = await db.get_video(scope_id)
+    audio = await db.get_audio(scope_id)
+    subtitle = await db.get_subtitle(scope_id)
 
-    # Display the current metadata
     text = f"""
 **㊋ Yᴏᴜʀ Mᴇᴛᴀᴅᴀᴛᴀ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ: {current}**
 
@@ -28,7 +27,6 @@ async def metadata(client, message):
 **◈ Vɪᴅᴇᴏ ▹** `{video if video else 'Nᴏᴛ ꜰᴏᴜɴᴅ'}`  
     """
 
-    # Inline buttons to toggle metadata
     buttons = [
         [
             InlineKeyboardButton(f"On{' ✅' if current == 'On' else ''}", callback_data='on_metadata'),
@@ -45,13 +43,13 @@ async def metadata(client, message):
 
 @Client.on_callback_query(filters.regex(r"on_metadata|off_metadata|metainfo"))
 async def metadata_callback(client, query: CallbackQuery):
-    user_id = query.from_user.id
+    scope_id = get_scope_id(query.message)
     data = query.data
 
     if data == "on_metadata":
-        await db.set_metadata(user_id, "On")
+        await db.set_metadata(scope_id, "On")
     elif data == "off_metadata":
-        await db.set_metadata(user_id, "Off")
+        await db.set_metadata(scope_id, "Off")
     elif data == "metainfo":
         await query.message.edit_text(
             text=Txt.META_TXT,
@@ -65,16 +63,14 @@ async def metadata_callback(client, query: CallbackQuery):
         )
         return
 
-    # Fetch updated metadata after toggling
-    current = await db.get_metadata(user_id)
-    title = await db.get_title(user_id)
-    author = await db.get_author(user_id)
-    artist = await db.get_artist(user_id)
-    video = await db.get_video(user_id)
-    audio = await db.get_audio(user_id)
-    subtitle = await db.get_subtitle(user_id)
+    current = await db.get_metadata(scope_id)
+    title = await db.get_title(scope_id)
+    author = await db.get_author(scope_id)
+    artist = await db.get_artist(scope_id)
+    video = await db.get_video(scope_id)
+    audio = await db.get_audio(scope_id)
+    subtitle = await db.get_subtitle(scope_id)
 
-    # Updated metadata message after toggle
     text = f"""
 **㊋ Yᴏᴜʀ Mᴇᴛᴀᴅᴀᴛᴀ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ: {current}**
 
@@ -86,7 +82,6 @@ async def metadata_callback(client, query: CallbackQuery):
 **◈ Vɪᴅᴇᴏ ▹** `{video if video else 'Nᴏᴛ ꜰᴏᴜɴᴅ'}`  
     """
 
-    # Update inline buttons
     buttons = [
         [
             InlineKeyboardButton(f"On{' ✅' if current == 'On' else ''}", callback_data='on_metadata'),
@@ -99,56 +94,62 @@ async def metadata_callback(client, query: CallbackQuery):
     await query.message.edit_text(text=text, reply_markup=InlineKeyboardMarkup(buttons), disable_web_page_preview=True)
 
 
-@Client.on_message(filters.command('settitle'))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command('settitle'))
 async def title(client, message):
+    scope_id = get_scope_id(message)
     if len(message.command) == 1:
         return await message.reply_text(
             "**Gɪᴠᴇ Tʜᴇ Tɪᴛʟᴇ\n\nExᴀᴍᴩʟᴇ:- /settitle Encoded By @Animes_Cruise**")
     title = message.text.split(" ", 1)[1]
-    await db.set_title(message.from_user.id, title)
+    await db.set_title(scope_id, title)
     await message.reply_text("**✅ Tɪᴛʟᴇ Sᴀᴠᴇᴅ**")
 
-@Client.on_message(filters.command('setauthor'))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command('setauthor'))
 async def author(client, message):
+    scope_id = get_scope_id(message)
     if len(message.command) == 1:
         return await message.reply_text(
             "**Gɪᴠᴇ Tʜᴇ Aᴜᴛʜᴏʀ\n\nExᴀᴍᴩʟᴇ:- /setauthor @Animes_Cruise**")
     author = message.text.split(" ", 1)[1]
-    await db.set_author(message.from_user.id, author)
+    await db.set_author(scope_id, author)
     await message.reply_text("**✅ Aᴜᴛʜᴏʀ Sᴀᴠᴇᴅ**")
 
-@Client.on_message(filters.command('setartist'))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command('setartist'))
 async def artist(client, message):
+    scope_id = get_scope_id(message)
     if len(message.command) == 1:
         return await message.reply_text(
             "**Gɪᴠᴇ Tʜᴇ Aʀᴛɪꜱᴛ\n\nExᴀᴍᴩʟᴇ:- /setartist @Animes_Cruise**")
     artist = message.text.split(" ", 1)[1]
-    await db.set_artist(message.from_user.id, artist)
+    await db.set_artist(scope_id, artist)
     await message.reply_text("**✅ Aʀᴛɪꜱᴛ Sᴀᴠᴇᴅ**")
 
-@Client.on_message(filters.command('setaudio'))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command('setaudio'))
 async def audio(client, message):
+    scope_id = get_scope_id(message)
     if len(message.command) == 1:
         return await message.reply_text(
             "**Gɪᴠᴇ Tʜᴇ Aᴜᴅɪᴏ Tɪᴛʟᴇ\n\nExᴀᴍᴩʟᴇ:- /setaudio @Animes_Cruise**")
     audio = message.text.split(" ", 1)[1]
-    await db.set_audio(message.from_user.id, audio)
+    await db.set_audio(scope_id, audio)
     await message.reply_text("**✅ Aᴜᴅɪᴏ Sᴀᴠᴇᴅ**")
 
-@Client.on_message(filters.command('setsubtitle'))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command('setsubtitle'))
 async def subtitle(client, message):
+    scope_id = get_scope_id(message)
     if len(message.command) == 1:
         return await message.reply_text(
             "**Gɪᴠᴇ Tʜᴇ Sᴜʙᴛɪᴛʟᴇ Tɪᴛʟᴇ\n\nExᴀᴍᴩʟᴇ:- /setsubtitle @Animes_Cruise**")
     subtitle = message.text.split(" ", 1)[1]
-    await db.set_subtitle(message.from_user.id, subtitle)
+    await db.set_subtitle(scope_id, subtitle)
     await message.reply_text("**✅ Sᴜʙᴛɪᴛʟᴇ Sᴀᴠᴇᴅ**")
 
-@Client.on_message(filters.command('setvideo'))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command('setvideo'))
 async def video(client, message):
+    scope_id = get_scope_id(message)
     if len(message.command) == 1:
         return await message.reply_text(
             "**Gɪᴠᴇ Tʜᴇ Vɪᴅᴇᴏ Tɪᴛʟᴇ\n\nExᴀᴍᴩʟᴇ:- /setvideo Encoded by @Animes_Cruise**")
     video = message.text.split(" ", 1)[1]
-    await db.set_video(message.from_user.id, video)
+    await db.set_video(scope_id, video)
     await message.reply_text("**✅ Vɪᴅᴇᴏ Sᴀᴠᴇᴅ**")
