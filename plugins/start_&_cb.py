@@ -46,7 +46,7 @@ def _help_keyboard():
 def _callback_scope_id(query):
     """
     Channel buttons use the channel ID.
-    Private-chat buttons use the clicking user's ID.
+    Private/Group buttons use the clicking user's ID or chat ID.
     """
     chat = getattr(query.message, "chat", None)
 
@@ -68,7 +68,6 @@ async def _edit_page(
     reply_markup=None,
     disable_web_page_preview=True,
 ):
-    """Edit either a text page or a photo caption."""
     if getattr(message, "media", None):
         return await message.edit_caption(
             caption=text,
@@ -83,23 +82,20 @@ async def _edit_page(
 
 
 @Client.on_message(
-    (filters.private | filters.channel) & filters.command("start")
+    (filters.private | filters.group | filters.channel) & filters.command("start")
 )
 async def start(client: Client, message: Message):
-    # Use the private user's ID or the channel's ID.
     scope_id = get_scope_id(message)
 
-    # IMPORTANT: /start activates quality rename mode.
     activate_rename_session(scope_id, "quality")
 
-    # This safely does nothing for channel posts without a sender.
     await codeflixbots.add_user(client, message)
 
     user = message.from_user
     display_name = (
         user.mention
         if user
-        else (getattr(message.chat, "title", None) or "Channel")
+        else (getattr(message.chat, "title", None) or "Chat")
     )
 
     welcome_text = (
@@ -133,7 +129,6 @@ async def start(client: Client, message: Message):
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
     data = query.data or ""
-    user_id = query.from_user.id
     scope_id = _callback_scope_id(query)
 
     if data in {"close", "close_data"}:
@@ -208,18 +203,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             [InlineKeyboardButton("• ʙᴀᴄᴋ •", callback_data="home")],
         ])
 
-    elif data == "premiumx":
-        text = Txt.PREMIUM_TXT
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("• ʙᴀᴄᴋ •", callback_data="help")]
-        ])
-
-    elif data == "plans":
-        text = Txt.PREPLANS_TXT
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("• ʙᴀᴄᴋ •", callback_data="help")]
-        ])
-
     else:
         return await query.answer(
             "Unknown menu action",
@@ -236,97 +219,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
 
 
-@Client.on_message(filters.command("donate"))
-async def donation(client, message):
-    buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("ʙᴀᴄᴋ", callback_data="help"),
-            InlineKeyboardButton("ᴏᴡɴᴇʀ", url="https://t.me/sewxiy"),
-        ]
-    ])
-
-    await message.reply_photo(
-        photo="https://graph.org/file/1919fe077848bd0783d4c.jpg",
-        caption=Txt.DONATE_TXT,
-        reply_markup=buttons,
-    )
-
-
-@Client.on_message(filters.command("premium"))
-async def getpremium(client, message):
-    buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("ᴏᴡɴᴇʀ", url="https://t.me/sewxiy"),
-            InlineKeyboardButton("ᴄʟᴏsᴇ", callback_data="close"),
-        ]
-    ])
-
-    await message.reply_photo(
-        photo="https://graph.org/file/feebef43bbdf76e796b1b.jpg",
-        caption=Txt.PREMIUM_TXT,
-        reply_markup=buttons,
-    )
-
-
-@Client.on_message(filters.command("plan"))
-async def premium(client, message):
-    buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("sᴇɴᴅ ss", url="https://t.me/sewxiy"),
-            InlineKeyboardButton("ᴄʟᴏsᴇ", callback_data="close"),
-        ]
-    ])
-
-    await message.reply_photo(
-        photo="https://graph.org/file/8b50e21db819f296661b7.jpg",
-        caption=Txt.PREPLANS_TXT,
-        reply_markup=buttons,
-    )
-
-
-@Client.on_message(filters.command("bought") & filters.private)
-async def bought(client, message):
-    replied = message.reply_to_message
-
-    if not replied or not replied.photo:
-        return await message.reply_text(
-            "**Reply to a payment screenshot with /bought.**"
-        )
-
-    if not Config.ADMIN_IDS:
-        return await message.reply_text(
-            "**No admins are configured to receive this request.**"
-        )
-
-    delivered = 0
-
-    for admin_id in Config.ADMIN_IDS:
-        try:
-            await client.send_photo(
-                chat_id=admin_id,
-                photo=replied.photo.file_id,
-                caption=(
-                    f"<b>Payment review request</b>\n"
-                    f"User: {message.from_user.mention}\n"
-                    f"User ID: <code>{message.from_user.id}</code>\n"
-                    f"Username: <code>{message.from_user.username or 'none'}</code>"
-                ),
-            )
-            delivered += 1
-        except Exception:
-            continue
-
-    await message.reply_text(
-        f"**✅ Request sent to {delivered} admin(s).**"
-    )
-
-
 @Client.on_message(
-    (filters.private | filters.channel) & filters.command("help")
+    (filters.private | filters.group | filters.channel) & filters.command("help")
 )
 async def help_command(client, message):
     await message.reply_text(
         text=Txt.HELP_TXT,
         disable_web_page_preview=True,
         reply_markup=_help_keyboard(),
-        )
+    )
