@@ -29,7 +29,7 @@ def _callback_scope_id(query):
 
 
 @Client.on_message(
-    (filters.private | filters.channel) & filters.command("autorename")
+    (filters.private | filters.group | filters.channel) & filters.command("autorename")
 )
 async def auto_rename_command(client, message):
     scope_id = get_scope_id(message)
@@ -60,7 +60,7 @@ async def auto_rename_command(client, message):
 
 
 @Client.on_message(
-    (filters.private | filters.channel) & filters.command("setmedia")
+    (filters.private | filters.group | filters.channel) & filters.command("setmedia")
 )
 async def set_media_command(client, message):
     keyboard = InlineKeyboardMarkup([
