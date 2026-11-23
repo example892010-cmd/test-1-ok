@@ -1,5 +1,4 @@
-
-"""Concurrent, collision-safe file renaming with private and channel support."""
+"""Concurrent, collision-safe file renaming with private, group, and channel support."""
 
 import asyncio
 import logging
@@ -282,12 +281,8 @@ async def _send_quality_headings(client, message, scope_id, parsed):
     Message 1: Episode 04 👇
     Message 2: **480p**
     File:      Renamed media
-
-    The quality heading is sent even when the previous file
-    had the same quality.
     """
 
-    # Send /getlinkauto as literal text once per session.
     if not has_sent_getlinkauto(scope_id):
         try:
             await client.send_message(
@@ -301,7 +296,6 @@ async def _send_quality_headings(client, message, scope_id, parsed):
                 exc_info=True,
             )
 
-    # MESSAGE 1: Episode heading in normal text.
     if parsed.episode is not None:
         episode_heading = f"Episode {parsed.episode:02d} 👇"
     else:
@@ -312,7 +306,6 @@ async def _send_quality_headings(client, message, scope_id, parsed):
         text=episode_heading,
     )
 
-    # MESSAGE 2: Quality heading in bold.
     quality = parsed.quality or "Quality Unknown"
 
     await client.send_message(
@@ -474,10 +467,7 @@ async def _process_rename(client, message, details, template, mode):
                 ),
             }
 
-            # Lock keeps the headings and file together.
             async with get_output_lock(scope_id):
-
-                # Quality mode: Episode -> Quality -> File.
                 if mode == "quality":
                     await _send_quality_headings(
                         client,
@@ -486,7 +476,6 @@ async def _process_rename(client, message, details, template, mode):
                         parsed,
                     )
 
-                # NORMAL MODE skips all quality headings.
                 if output_type == "video":
                     await client.send_video(
                         video=final_path,
@@ -553,7 +542,7 @@ async def _process_rename(client, message, details, template, mode):
 
 
 @Client.on_message(
-    (filters.private | filters.channel)
+    (filters.private | filters.group | filters.channel)
     & (filters.document | filters.video | filters.audio)
 )
 async def auto_rename_files(client, message):
@@ -564,7 +553,6 @@ async def auto_rename_files(client, message):
     if not details:
         return
 
-    # File-sort mode takes precedence over rename mode.
     if await codeflixbots.is_sort_session_active(scope_id):
         count = await codeflixbots.add_sort_file(
             scope_id,
@@ -582,7 +570,6 @@ async def auto_rename_files(client, message):
                 )
             return
 
-    # Require /start or /normalrename.
     mode = get_rename_mode(scope_id)
 
     if not mode:
