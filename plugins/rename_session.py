@@ -5,7 +5,7 @@ from pyrogram import Client, filters
 from helper.scope import get_scope_id
 
 
-# Settings are kept separately for each user or channel.
+# Settings are kept separately for each user, group, or channel.
 _RENAME_MODES = {}
 _OUTPUT_LOCKS = {}
 _LAST_QUALITY = {}
@@ -54,7 +54,7 @@ def mark_getlinkauto_sent(scope_id):
 
 
 @Client.on_message(
-    (filters.private | filters.channel) & filters.command("normalrename")
+    (filters.private | filters.group | filters.channel) & filters.command("normalrename")
 )
 async def normal_rename_mode(client, message):
     scope_id = get_scope_id(message)
