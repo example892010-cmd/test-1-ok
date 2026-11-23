@@ -10,10 +10,6 @@ from helper.scope import get_scope_id
 
 
 def _callback_scope_id(query):
-    """
-    Use the channel ID for channel keyboards.
-    Use the clicking user's ID for private-chat keyboards.
-    """
     chat = getattr(query.message, "chat", None)
 
     if chat:
@@ -25,7 +21,9 @@ def _callback_scope_id(query):
         if type_name.endswith("channel"):
             return int(chat.id)
 
-    return int(query.from_user.id)
+    if query.from_user:
+        return int(query.from_user.id)
+    return int(query.message.chat.id)
 
 
 @Client.on_message(
