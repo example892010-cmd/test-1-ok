@@ -7,6 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
 
 from helper.database import codeflixbots
+from helper.scope import get_scope_id
 from helper.filename_utils import media_sort_key, parse_media_name
 
 logger = logging.getLogger(__name__)
@@ -34,9 +35,10 @@ async def _copy_message_with_floodwait(client, chat_id, item, caption):
             await asyncio.sleep(error.value + 1)
 
 
-@Client.on_message(filters.command("filessort"))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command("filessort"))
 async def begin_file_sort(client, message):
-    await codeflixbots.start_sort_session(message.from_user.id)
+    scope_id = get_scope_id(message)
+    await codeflixbots.start_sort_session(scope_id)
     await message.reply_text(
         "**📂 File sorting mode started.**\n\n"
         "Send all your files in any order. I will keep their original names and metadata.\n\n"
@@ -44,18 +46,18 @@ async def begin_file_sort(client, message):
     )
 
 
-@Client.on_message(filters.command("sort"))
+@Client.on_message((filters.private | filters.group | filters.channel) & filters.command("sort"))
 async def sort_collected_files(client, message):
-    user_id = message.from_user.id
-    if user_id in _active_sorters:
+    scope_id = get_scope_id(message)
+    if scope_id in _active_sorters:
         return await message.reply_text("**A sort operation is already running for you.**")
 
-    _active_sorters.add(user_id)
+    _active_sorters.add(scope_id)
     try:
-        await codeflixbots.stop_sort_session(user_id)
-        files = await codeflixbots.get_sort_files(user_id)
+        await codeflixbots.stop_sort_session(scope_id)
+        files = await codeflixbots.get_sort_files(scope_id)
         if not files:
-            await codeflixbots.finish_sort_session(user_id)
+            await codeflixbots.finish_sort_session(scope_id)
             return await message.reply_text("**No files are queued. Start with /filessort.**")
 
         prepared = []
@@ -63,7 +65,6 @@ async def sort_collected_files(client, message):
             parsed = parse_media_name(item["file_name"])
             prepared.append({**item, "parsed": parsed, "index": index})
 
-        # Group names are normalized to avoid separate groups caused by release tags/case.
         series_groups = defaultdict(list)
         for item in prepared:
             key = " ".join(item["parsed"].title.casefold().split())
@@ -102,7 +103,7 @@ async def sort_collected_files(client, message):
                             client, message.chat.id, item, caption
                         )
                         await codeflixbots.mark_sort_file_sent(
-                            user_id, item["chat_id"], item["message_id"]
+                            scope_id, item["chat_id"], item["message_id"]
                         )
                         sent += 1
                     except Exception as error:
@@ -120,7 +121,7 @@ async def sort_collected_files(client, message):
                         )
 
             if failed == 0:
-                await codeflixbots.finish_sort_session(user_id)
+                await codeflixbots.finish_sort_session(scope_id)
                 completion_note = "All queued files were copied successfully."
             else:
                 completion_note = (
@@ -138,4 +139,4 @@ async def sort_collected_files(client, message):
                 "Files not yet copied remain queued for another **/sort**."
             )
     finally:
-        _active_sorters.discard(user_id)
+        _active_sorters.discard(scope_id)
