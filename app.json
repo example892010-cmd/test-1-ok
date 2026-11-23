@@ -1,0 +1,20 @@
+{
+  "name": "Auto Rename Bot",
+  "description": "Telegram batch auto-renamer and episode sorter with local SQLite storage",
+  "keywords": ["Telegram Bot", "Auto Rename", "Episode Sorter"],
+  "env": {
+    "BOT_TOKEN": {
+      "description": "Telegram bot token from @BotFather",
+      "required": true
+    },
+    "OWNER_ID": {
+      "description": "Your Telegram numeric user ID",
+      "required": true
+    },
+    "ADMIN_ID": {
+      "description": "Admin numeric user IDs separated by spaces or commas",
+      "required": true
+    }
+  },
+  "buildpacks": [{"url": "heroku/python"}]
+}

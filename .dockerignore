@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+!.env.first-run.example
+storage/
+__pycache__/
+*.py[cod]
+*.session
+*.session-journal
+.git/

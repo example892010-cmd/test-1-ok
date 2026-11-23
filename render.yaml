@@ -1,0 +1,21 @@
+services:
+  - type: worker
+    name: auto-rename-bot
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    autoDeploy: false
+    disk:
+      name: auto-rename-storage
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: OWNER_ID
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: STORAGE_DIR
+        value: /var/data
