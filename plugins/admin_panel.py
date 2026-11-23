@@ -30,7 +30,7 @@ async def restart_bot(b, m):
 
 @Client.on_message(filters.command("tutorial"))
 async def tutorial(bot: Client, message: Message):
-    user_id = message.from_user.id
+    user_id = message.from_user.id if message.from_user else message.chat.id
     format_template = await codeflixbots.get_format_template(user_id)
     await message.reply_text(
         text=Txt.FILE_NAME_TXT + (f"\n\n**Saved format:** `{format_template}`" if format_template else ""),
@@ -56,7 +56,9 @@ async def get_stats(bot, message):
 async def broadcast_handler(bot: Client, m: Message):
     if Config.LOG_CHANNEL is not None:
         try:
-            await bot.send_message(Config.LOG_CHANNEL, f"{m.from_user.mention} or {m.from_user.id} started the broadcast.")
+            user_mention = m.from_user.mention if m.from_user else "Admin"
+            user_id = m.from_user.id if m.from_user else m.chat.id
+            await bot.send_message(Config.LOG_CHANNEL, f"{user_mention} or {user_id} started the broadcast.")
         except Exception:
             logger.warning("Broadcast start log could not be sent", exc_info=True)
     all_users = await codeflixbots.get_all_users()
